@@ -25,7 +25,34 @@ server.get('/usersres/:id', (req, res) => {
 
 const usuarios = ['Diego', 'Claudio', 'Victor'];
 
-server.get('/usuarios/:index', (req, res) => {
+// Utilizando middlewares globales.
+
+server.use((req, res, next) => {
+   console.time('Request');
+   console.log(`Método: ${req.method}; URL: ${req.url}`);
+
+   next();
+
+   console.timeEnd('Request');
+});
+
+function checkUserExists(req, res, next) {
+   if (!req.body.name) {
+      return res.status(400).json({ error: 'User name is required' });
+   }
+
+   return next();
+}
+
+function checkUserInArray(req, res, next) {
+   if (!usuarios[req.params.index]) {
+      return res.status(400).json({ error: 'User does not exists' });
+   }
+
+   return next();
+}
+
+server.get('/usuarios/:index', checkUserInArray, (req, res) => {
    const { index } = req.params;
    return res.json({ message: `Retornando el usuario ${usuarios[index]}` });
 });
@@ -34,13 +61,13 @@ server.get('/usuarios', (req, res) => {
    return res.json(usuarios);
 });
 
-server.post('/usuarios', (req, res) => {
+server.post('/usuarios', checkUserExists, (req, res) => {
    const { name } = req.body;
    usuarios.push(name);
    return res.json(usuarios);
 });
 
-server.put('/usuarios/:index', (req, res) => {
+server.put('/usuarios/:index', checkUserExists, checkUserInArray, (req, res) => {
    const { index } = req.params;
    const { name } = req.body;
 
@@ -49,7 +76,7 @@ server.put('/usuarios/:index', (req, res) => {
    return res.json(usuarios);
 });
 
-server.delete('/usuarios/:index', (req, res) => {
+server.delete('/usuarios/:index', checkUserInArray, (req, res) => {
    const { index } = req.params;
 
    usuarios.splice(index, 1);
